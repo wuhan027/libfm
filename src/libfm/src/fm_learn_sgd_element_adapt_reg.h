@@ -33,6 +33,7 @@
 //  grad_lambdaw0 = (grad l(y(x),y)) * (-2 * alpha * w_0)
 //  grad_lambdawg = (grad l(y(x),y)) * (-2 * alpha * (\sum_{l \in group(g)} x_l * w_l))
 //  grad_lambdafg = (grad l(y(x),y)) * (-2 * alpha * (\sum_{l} x_l * v'_lf) * \sum_{l \in group(g)} x_l * v_lf) - \sum_{l \in group(g)} x^2_l * v_lf * v'_lf)
+// 机器学习算法实现解析——libFM之libFM的训练过程之Adaptive Regularization https://blog.csdn.net/google19890102/article/details/73301949
 
 #ifndef FM_LEARN_SGD_ELEMENT_ADAPT_REG_H_
 #define FM_LEARN_SGD_ELEMENT_ADAPT_REG_H_
@@ -87,13 +88,17 @@ void fm_learn_sgd_element_adapt_reg::init() {
   mean_v.setSize(fm->num_factor);
   var_v.setSize(fm->num_factor);
 
+  // 一次项的梯度的初始化
   grad_w.setSize(fm->num_attribute);
+  // 交叉项的梯度的初始化
   grad_v.setSize(fm->num_factor, fm->num_attribute);
 
   grad_w.init(0.0);
   grad_v.init(0.0);
 
+  // 正则化参数的梯度
   lambda_w_grad.setSize(meta->num_attr_groups);
+  // 更新lambda时使用到的变量
   sum_f.setSize(meta->num_attr_groups);
   sum_f_dash_f.setSize(meta->num_attr_groups);
 
@@ -133,62 +138,74 @@ void fm_learn_sgd_element_adapt_reg::init() {
   }
 }
 
+// 计算theta相关，更新theta中的参数
 void fm_learn_sgd_element_adapt_reg::sgd_theta_step(sparse_row<FM_FLOAT>& x, const DATA_FLOAT target) {
-  double p = fm->predict(x, sum, sum_sqr);
+  double p = fm->predict(x, sum, sum_sqr);  // 得到样本的预测值，在fm_model中
   double mult = 0;
-  if (task == 0) {
+  // 区分分类问题还是回归问题
+  if (task == TASK_REGRESSION) {
     p = std::min(max_target, p);
     p = std::max(min_target, p);
-    mult = 2 * (p - target);
-  } else if (task == 1) {
-    mult = target * (  (1.0/(1.0+exp(-target*p))) - 1.0 );
+    mult = 2 * (p - target);  // 梯度值的一部分
+  } else if (task == TASK_CLASSIFICATION) {
+    mult = target * (  (1.0/(1.0+exp(-target*p))) - 1.0 );  // 梯度值的一部分
   }
 
   // make the update with my regularization constants:
+  // 更新每一部分的参数
+  // 1、更新常数项的权重
   if (fm->k0) {
     double& w0 = fm->w0;
     double grad_0 = mult;
     w0 -= learn_rate * (grad_0 + 2 * reg_0 * w0);
   }
+  // 2、更新一次项的权重
   if (fm->k1) {
     for (uint i = 0; i < x.size; i++) {
-      uint g = meta->attr_group(x.data[i].id);
-      double& w = fm->w(x.data[i].id);
-      grad_w(x.data[i].id) = mult * x.data[i].value;
-      w -= learn_rate * (grad_w(x.data[i].id) + 2 * reg_w(g) * w);
+      uint g = meta->attr_group(x.data[i].id);  // 取得参数对应的分组的编号
+      double& w = fm->w(x.data[i].id);  // 得到模型的对应一次项的参数
+      grad_w(x.data[i].id) = mult * x.data[i].value;  // 一次项的梯度值
+      w -= learn_rate * (grad_w(x.data[i].id) + 2 * reg_w(g) * w);  // 更新一次项的权重值
     }
   }
+  // 3、更新交叉项的权重
   for (int f = 0; f < fm->num_factor; f++) {
     for (uint i = 0; i < x.size; i++) {
-      uint g = meta->attr_group(x.data[i].id);
-      double& v = fm->v(f,x.data[i].id);
+      uint g = meta->attr_group(x.data[i].id);  // 取得参数对应的分组的编号
+      double& v = fm->v(f,x.data[i].id);  // 取得模型的对应交叉项的参数
       grad_v(f,x.data[i].id) = mult * (x.data[i].value * (sum(f) - v * x.data[i].value)); // grad_v_if = (y(x)-y) * [ x_i*(\sum_j x_j v_jf) - v_if*x^2 ]
-      v -= learn_rate * (grad_v(f,x.data[i].id) + 2 * reg_v(g,f) * v);
+      v -= learn_rate * (grad_v(f,x.data[i].id) + 2 * reg_v(g,f) * v);  // 更新交叉项的权重值
     }
   }
 }
 
+// 扩展后的预测值，是指在模型的预测值中增加了正则项
 double fm_learn_sgd_element_adapt_reg::predict_scaled(sparse_row<FM_FLOAT>& x) {
-  double p = 0.0;
+  double p = 0.0; // 最终的预测值
+  // 1、常数项
   if (fm->k0) {
-    p += fm->w0;
+    p += fm->w0;  // 常数项，注意这边并没有对常数项增加正则
   }
+  // 2、一次项
   if (fm->k1) {
+    // 累加每一维特征项
     for (uint i = 0; i < x.size; i++) {
-      assert(x.data[i].id < fm->num_attribute);
-      uint g = meta->attr_group(x.data[i].id);
-      double& w = fm->w(x.data[i].id);
-      double w_dash = w - learn_rate * (grad_w(x.data[i].id) + 2 * reg_w(g) * w);
-      p += w_dash * x.data[i].value;
+      assert(x.data[i].id < fm->num_attribute); // 特征的维度的容错
+      uint g = meta->attr_group(x.data[i].id);  // 取得当前特征对应的正则化参数的索引
+      double& w = fm->w(x.data[i].id);  // 取得当前的权重
+      double w_dash = w - learn_rate * (grad_w(x.data[i].id) + 2 * reg_w(g) * w); // 更新权重
+      p += w_dash * x.data[i].value;  // 累加计算
     }
   }
+  // 3、交叉项
   for (int f = 0; f < fm->num_factor; f++) {
+    // sum和sum_sqr分别对应着交叉项计算中的两项
     sum(f) = 0.0;
     sum_sqr(f) = 0.0;
     for (uint i = 0; i < x.size; i++) {
-      uint g = meta->attr_group(x.data[i].id);
-      double& v = fm->v(f,x.data[i].id);
-      double v_dash = v - learn_rate * (grad_v(f,x.data[i].id) + 2 * reg_v(g,f) * v);
+      uint g = meta->attr_group(x.data[i].id);  // 取得当前特征对应的正则化参数的索引
+      double& v = fm->v(f,x.data[i].id);  // 取得模型的对应交叉项的参数
+      double v_dash = v - learn_rate * (grad_v(f,x.data[i].id) + 2 * reg_v(g,f) * v); // 更新交叉项的参数
       double d = v_dash * x.data[i].value;
       sum(f) += d;
       sum_sqr(f) += d*d;
@@ -198,29 +215,35 @@ double fm_learn_sgd_element_adapt_reg::predict_scaled(sparse_row<FM_FLOAT>& x) {
   return p;
 }
 
+// 计算lambda相关，更新lambda中的参数
 void fm_learn_sgd_element_adapt_reg::sgd_lambda_step(sparse_row<FM_FLOAT>& x, const DATA_FLOAT target) {
-  double p = predict_scaled(x);
+  double p = predict_scaled(x); // 扩展后的预测值
   double grad_loss = 0;
-  if (task == 0) {
+  // 区分两类问题：回归问题和分类问题
+  if (task == TASK_REGRESSION) {
     p = std::min(max_target, p);
     p = std::max(min_target, p);
     grad_loss = 2 * (p - target);
-  } else if (task == 1) {
+  } else if (task == TASK_CLASSIFICATION) {
     grad_loss = target * ( (1.0/(1.0+exp(-target*p))) -  1.0);
   }
 
+  // 1、更新一次项的正则化参数
   if (fm->k1) {
     lambda_w_grad.init(0.0);
+    // 将累加和分配到每一个分组中
     for (uint i = 0; i < x.size; i++) {
       uint g = meta->attr_group(x.data[i].id);
-      lambda_w_grad(g) += x.data[i].value * fm->w(x.data[i].id);
+      lambda_w_grad(g) += x.data[i].value * fm->w(x.data[i].id);  // 在对应的分组中计算累加和
     }
+    // 修改每一个分组内的正则化参数
     for (uint g = 0; g < meta->num_attr_groups; g++) {
       lambda_w_grad(g) = -2 * learn_rate * lambda_w_grad(g);
       reg_w(g) -= learn_rate * grad_loss * lambda_w_grad(g);
-      reg_w(g) = std::max(0.0, reg_w(g));
+      reg_w(g) = std::max(0.0, reg_w(g)); // 对修改后的正则化参数容错，防止其小于0
     }
   }
+  // 2、更新交叉项的正则化参数
   for (int f = 0; f < fm->num_factor; f++) {
     // grad_lambdafg = (grad l(y(x),y)) * (-2 * alpha * (\sum_{l} x_l * v'_lf) * (\sum_{l \in group(g)} x_l * v_lf) - \sum_{l \in group(g)} x^2_l * v_lf * v'_lf)
     // sum_f_dash      := \sum_{l} x_l * v'_lf, this is independent of the groups
@@ -232,26 +255,30 @@ void fm_learn_sgd_element_adapt_reg::sgd_lambda_step(sparse_row<FM_FLOAT>& x, co
     for (uint i = 0; i < x.size; i++) {
       // v_if' =  [ v_if * (1-alpha*lambda_v_f) - alpha * grad_v_if]
       uint g = meta->attr_group(x.data[i].id);
-      double& v = fm->v(f,x.data[i].id);
+      double& v = fm->v(f,x.data[i].id);  // 取得模型的对应交叉项的参数
       double v_dash = v - learn_rate * (grad_v(f,x.data[i].id) + 2 * reg_v(g,f) * v);
 
+      // 更新公式中的三项
       sum_f_dash += v_dash * x.data[i].value;
       sum_f(g) += v * x.data[i].value;
       sum_f_dash_f(g) += v_dash * x.data[i].value * v * x.data[i].value;
     }
+    // 对每一个分组中的正则化参数更新
     for (uint g = 0; g < meta->num_attr_groups; g++) {
       double lambda_v_grad = -2 * learn_rate *  (sum_f_dash * sum_f(g) - sum_f_dash_f(g));
       reg_v(g,f) -= learn_rate * grad_loss * lambda_v_grad;
-      reg_v(g,f) = std::max(0.0, reg_v(g,f));
+      reg_v(g,f) = std::max(0.0, reg_v(g,f)); // 对修改后的正则化参数容错，防止其小于0
     }
   }
 }
 
 void fm_learn_sgd_element_adapt_reg::update_means() {
+  // 均值和方差
   mean_w = 0;
   mean_v.init(0);
   var_w = 0;
   var_v.init(0);
+  // 1、计算w的均值和方差
   for (uint j = 0; j < fm->num_attribute; j++) {
     mean_w += fm->w(j);
     var_w += fm->w(j)*fm->w(j);
@@ -260,64 +287,80 @@ void fm_learn_sgd_element_adapt_reg::update_means() {
       var_v(f) += fm->v(f,j)*fm->v(f,j);
     }
   }
-  mean_w /= (double) fm->num_attribute;
-  var_w = var_w/fm->num_attribute - mean_w*mean_w;
+  mean_w /= (double) fm->num_attribute; // 计算均值
+  var_w = var_w/fm->num_attribute - mean_w*mean_w;  // 计算方差
+  // 2、计算v的均值和方差
   for (int f = 0; f < fm->num_factor; f++) {
     mean_v(f) /= fm->num_attribute;
     var_v(f) = var_v(f)/fm->num_attribute - mean_v(f)*mean_v(f);
   }
 
+  // 3、重新置均值为0
   mean_w = 0;
   for (int f = 0; f < fm->num_factor; f++) {
     mean_v(f) = 0;
   }
 }
 
+// self-adaptive-regularization 的训练
 void fm_learn_sgd_element_adapt_reg::learn(Data& train, Data& test) {
-  fm_learn_sgd::learn(train, test);
+  fm_learn_sgd::learn(train, test); // 输出一些训练信息，继承自fm_learn_sgd类中的方法
 
   std::cout << "Training using self-adaptive-regularization SGD."<< std::endl << "DON'T FORGET TO SHUFFLE THE ROWS IN TRAINING AND VALIDATION DATA TO GET THE BEST RESULTS." << std::endl;
 
   // make sure that fm-parameters are initialized correctly (no other side effects)
+  // 确保初始化的过程
   fm->w.init(0);
   fm->reg0 = 0;
   fm->regw = 0;
   fm->regv = 0;
 
   // start with no regularization
+  // 正则化参数的初始化，全部初始化为0
   reg_w.init(0.0);
   reg_v.init(0.0);
 
+  // 打印输出信息，包括训练样本点的条数和验证样本的条数
   std::cout << "Using " << train.data->getNumRows() << " rows for training model parameters and " << validation->data->getNumRows() << " for training shrinkage." << std::endl;
 
   // SGD
+  // 基于梯度的训练过程
   for (int i = 0; i < num_iter; i++) {
     double iteration_time = getusertime();
 
     // SGD-based learning: both lambda and theta are learned
-    update_means();
-    validation->data->begin();
+    // 分为lambda step和theta step
+    update_means(); // 计算均值和方差
+    validation->data->begin();  // 将验证集的指针指向开始位置
     for (train.data->begin(); !train.data->end(); train.data->next()) {
+      // 计算theta相关，更新theta中的参数
+      // 利用训练集训练和更新模型的参数，此时模型中的正则化参数是固定的
       sgd_theta_step(train.data->getRow(), train.target(train.data->getRowIndex()));
 
+      // 当i=0时，不需要更新lambda
       if (i > 0) { // make no lambda steps in the first iteration, because some of the gradients (grad_theta) might not be initialized.
+        // 每次只使用validation中的一条样本
         if (validation->data->end()) {
-          update_means();
-          validation->data->begin();
+          update_means(); // 计算均值和方差
+          validation->data->begin();  // 将验证集的指针指向开始位置
         }
+        // 计算lambda相关，更新lambda中的参数
+        // 利用验证集更新正则化参数，此时模型中的参数是固定的
         sgd_lambda_step(validation->data->getRow(), validation->target(validation->data->getRowIndex()));
-        validation->data->next();
+        validation->data->next(); // 将验证集的指针指向下一条样本
       }
     }
 
     // (3) Evaluation
     iteration_time = (getusertime() - iteration_time);
-
-    double rmse_val = evaluate(*validation);
-    double rmse_train = evaluate(train);
-    double rmse_test = evaluate(test);
+    // 评价函数
+    double rmse_val = evaluate(*validation);  // 对验证集进行评测
+    double rmse_train = evaluate(train);  // 对训练集进行评测
+    double rmse_test = evaluate(test);  // 对测试集进行评测
+    // 打印输出模型的评估结果
     std::cout << "#Iter=" << std::setw(3) << i << "\tTrain=" << rmse_train << "\tTest=" << rmse_test << std::endl;
     if (log != NULL) {
+      // log 输出均值和方差
       log->log("wmean", mean_w);
       log->log("wvar", var_w);
       for (int f = 0; f < fm->num_factor; f++) {
@@ -332,6 +375,7 @@ void fm_learn_sgd_element_adapt_reg::learn(Data& train, Data& test) {
           log->log(ss.str(), var_v(f));
         }
       }
+      // log 输出正则化参数
       for (uint g = 0; g < meta->num_attr_groups; g++) {
         {
           std::ostringstream ss;
@@ -346,6 +390,7 @@ void fm_learn_sgd_element_adapt_reg::learn(Data& train, Data& test) {
           }
         }
       }
+      // log输出训练时间和评估效果
       log->log("time_learn", iteration_time);
       log->log("rmse_train", rmse_train);
       log->log("rmse_val", rmse_val);
