@@ -23,6 +23,7 @@
 // - Steffen Rendle (2010): Factorization Machines, in Proceedings of the 10th
 //   IEEE International Conference on Data Mining (ICDM 2010), Sydney,
 //   Australia.
+//机器学习算法实现解析——libFM之libFM的模型处理部分 https://blog.csdn.net/google19890102/article/details/72866290
 
 #ifndef FM_MODEL_H_
 #define FM_MODEL_H_
@@ -35,29 +36,31 @@
 
 class fm_model {
  public:
-  fm_model();
+  fm_model(); // 构造函数，主要完成参数的初始化
   void debug();
-  void init();
+  void init();  // 初始化函数，主要用于生成各维度系数的初始值
+    // 对样本进行预测
   double predict(sparse_row<FM_FLOAT>& x);
   double predict(sparse_row<FM_FLOAT>& x, DVector<double> &sum, DVector<double> &sum_sqr);
   void saveModel(std::string model_file_path);
   int loadModel(std::string model_file_path);
 
-  double w0;
-  DVectorDouble w;
-  DMatrixDouble v;
+    //fm模型中的参数
+  double w0;  // 常数项
+  DVectorDouble w;  // 一次项的系数
+  DMatrixDouble v;  // 交叉项的系数矩阵
 
   // the following values should be set:
-  uint num_attribute;
+  uint num_attribute; // 特征的个数
 
-  bool k0, k1;
-  int num_factor;
+  bool k0, k1;  // 是否包含常数项和一次项
+  int num_factor; // 交叉项因子的个数
 
-  double reg0;
-  double regw, regv;
+  double reg0;  // 常数项的正则参数
+  double regw, regv;  // 一次项和交叉项的正则系数
 
-  double init_stdev;
-  double init_mean;
+  double init_stdev;  // 初始化参数时的方差
+  double init_mean; // 初始化参数时的均值
 
  private:
   void splitString(const std::string& s, char c, std::vector<std::string>& v);
@@ -89,11 +92,12 @@ void fm_model::debug() {
 }
 
 void fm_model::init() {
-  w0 = 0;
-  w.setSize(num_attribute);
-  v.setSize(num_factor, num_attribute);
-  w.init(0);
-  v.init(init_mean, init_stdev);
+  w0 = 0; // 常数项的系数
+  w.setSize(num_attribute); // 设置一次项系数的个数
+  v.setSize(num_factor, num_attribute); // 设置交叉项的矩阵大小
+  w.init(0);  // 初始化一次项系数为0
+  v.init(init_mean, init_stdev);  // 按照均值和方差初始化交叉项系数
+  // 交叉项中的两个参数，设置其大小为num_factor
   m_sum.setSize(num_factor);
   m_sum_sqr.setSize(num_factor);
 }
@@ -103,16 +107,20 @@ double fm_model::predict(sparse_row<FM_FLOAT>& x) {
 }
 
 double fm_model::predict(sparse_row<FM_FLOAT>& x, DVector<double> &sum, DVector<double> &sum_sqr) {
-  double result = 0;
+  double result = 0;  // 最终的结果
+  // 第一部分 常数项
   if (k0) {
     result += w0;
   }
+  // 第二部分 一次项
   if (k1) {
     for (uint i = 0; i < x.size; i++) {
       assert(x.data[i].id < num_attribute);
       result += w(x.data[i].id) * x.data[i].value;
     }
   }
+  // 第三部分
+  // 交叉项，对应着化简后的公式，有两重循环
   for (int f = 0; f < num_factor; f++) {
     sum(f) = 0;
     sum_sqr(f) = 0;
