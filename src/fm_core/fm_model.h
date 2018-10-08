@@ -62,7 +62,7 @@ class fm_model {
  private:
   void splitString(const std::string& s, char c, std::vector<std::string>& v);
 
-  DVector<double> m_sum, m_sum_sqr;
+  DVector<double> m_sum, m_sum_sqr; // 分别对应着交叉项的中的两项
 };
 
 // Implementation
