@@ -56,7 +56,7 @@ class fm_model {
   bool k0, k1;  // 是否包含常数项和一次项
   int num_factor; // 交叉项因子的个数
 
-  double reg0;  // 常数项的正则参数
+  double reg0;  // 常数项的正则参数 lamda
   double regw, regv;  // 一次项和交叉项的正则系数
 
   double init_stdev;  // 初始化参数时的方差

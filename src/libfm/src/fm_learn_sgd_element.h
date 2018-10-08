@@ -30,6 +30,7 @@
 
 #include "fm_learn_sgd.h"
 
+// 继承了fm_learn_sgd
 class fm_learn_sgd_element: public fm_learn_sgd {
  public:
   virtual void init();
@@ -39,33 +40,35 @@ class fm_learn_sgd_element: public fm_learn_sgd {
 // Implementation
 void fm_learn_sgd_element::init() {
   fm_learn_sgd::init();
-
+  // 日志输出
   if (log != NULL) {
     log->addField("rmse_train", std::numeric_limits<double>::quiet_NaN());
   }
 }
 
+// 利用SGD训练FM模型
 void fm_learn_sgd_element::learn(Data& train, Data& test) {
-  fm_learn_sgd::learn(train, test);
+  fm_learn_sgd::learn(train, test); // 输出参数信息
 
   std::cout << "SGD: DON'T FORGET TO SHUFFLE THE ROWS IN TRAINING DATA TO GET THE BEST RESULTS." << std::endl;
   // SGD
-  for (int i = 0; i < num_iter; i++) {
-
+  for (int i = 0; i < num_iter; i++) {  // 开始迭代，每一轮的迭代过程
     double iteration_time = getusertime();
-    for (train.data->begin(); !train.data->end(); train.data->next()) {
-      double p = fm->predict(train.data->getRow(), sum, sum_sqr);
-      double mult = 0;
-      if (task == 0) {
+    for (train.data->begin(); !train.data->end(); train.data->next()) { // 对于每一个样本
+      double p = fm->predict(train.data->getRow(), sum, sum_sqr); // 得到样本的预测值
+      double mult = 0;  // 损失函数的导数
+      if (task == TASK_REGRESSION) {  // 回归
         p = std::min(max_target, p);
         p = std::max(min_target, p);
         mult = -(train.target(train.data->getRowIndex())-p);
-      } else if (task == 1) {
+      } else if (task == TASK_CLASSIFICATION) { // 分类
         mult = -train.target(train.data->getRowIndex())*(1.0-1.0/(1.0+exp(-train.target(train.data->getRowIndex())*p)));
       }
+      // 利用梯度下降法对参数进行学习
       SGD(train.data->getRow(), mult, sum);
     }
     iteration_time = (getusertime() - iteration_time);
+    // evaluate函数是调用的fm_learn类中的方法
     double rmse_train = evaluate(train);
     double rmse_test = evaluate(test);
     std::cout << "#Iter=" << std::setw(3) << i << "\tTrain=" << rmse_train << "\tTest=" << rmse_test << std::endl;

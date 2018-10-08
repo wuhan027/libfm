@@ -30,17 +30,21 @@
 
 #include "fm_model.h"
 
+// 利用SGD更新模型的参数
 void fm_SGD(fm_model* fm, const double& learn_rate, sparse_row<DATA_FLOAT> &x, const double multiplier, DVector<double> &sum) {
+  // 1、常数项的修正
   if (fm->k0) {
     double& w0 = fm->w0;
     w0 -= learn_rate * (multiplier + fm->reg0 * w0);
   }
+  // 2、一次项的修正
   if (fm->k1) {
     for (uint i = 0; i < x.size; i++) {
       double& w = fm->w(x.data[i].id);
       w -= learn_rate * (multiplier * x.data[i].value + fm->regw * w);
     }
   }
+  // 3、交叉项的修正
   for (int f = 0; f < fm->num_factor; f++) {
     for (uint i = 0; i < x.size; i++) {
       double& v = fm->v(f,x.data[i].id);
