@@ -18,6 +18,7 @@
 //
 //
 // fm_learn.h: Generic learning method for factorization machines
+// 机器学习算法实现解析——libFM之libFM的训练过程概述 https://blog.csdn.net/google19890102/article/details/72866320
 
 #ifndef FM_LEARN_H_
 #define FM_LEARN_H_
@@ -38,16 +39,18 @@ class fm_learn {
   virtual void debug();
 
   DataMetaInfo* meta;
-  fm_model* fm;
-  double min_target;
-  double max_target;
+  fm_model* fm; // 对应的fm模型
+  double min_target;  // 设置的预测值的最小值
+  double max_target;  // 设置的预测值的最大值
 
+    // task用于区分不同的任务：0表示的是回归，1表示的是分类
   int task; // 0=regression, 1=classification
+    // 定义两个常量，分别表示的是回归和分类
   const static int TASK_REGRESSION = 0;
   const static int TASK_CLASSIFICATION = 1;
 
-  Data* validation;
-  RLog* log;
+  Data* validation; // 验证数据集
+  RLog* log;  // 日志指针
 
  protected:
   // these functions can be overwritten (e.g. for MCMC)
@@ -55,7 +58,7 @@ class fm_learn {
   virtual double evaluate_regression(Data& data);
   virtual double predict_case(Data& data);
 
-  DVector<double> sum, sum_sqr;
+  DVector<double> sum, sum_sqr; // FM模型的交叉项中的两项
   DMatrix<double> pred_q_term;
 };
 
@@ -64,6 +67,7 @@ double fm_learn::predict_case(Data& data) {
   return fm->predict(data.data->getRow());
 }
 
+// 构造函数，初始化变量，实例化的过程在main函数中
 fm_learn::fm_learn() {
   log = NULL;
   task = 0;
@@ -71,6 +75,7 @@ fm_learn::fm_learn() {
 }
 
 void fm_learn::init() {
+  // 日志
   if (log != NULL) {
     if (task == TASK_REGRESSION) {
       log->addField("rmse", std::numeric_limits<double>::quiet_NaN());
@@ -85,11 +90,13 @@ void fm_learn::init() {
     log->addField("time_learn2", std::numeric_limits<double>::quiet_NaN());
     log->addField("time_learn4", std::numeric_limits<double>::quiet_NaN());
   }
+  // 设置交叉项中的两项的大小
   sum.setSize(fm->num_factor);
   sum_sqr.setSize(fm->num_factor);
-  pred_q_term.setSize(fm->num_factor, meta->num_relations + 1);
+  pred_q_term.setSize(fm->num_factor, meta->num_relations + 1); //?
 }
 
+// 对数据的评估
 double fm_learn::evaluate(Data& data) {
   assert(data.data != NULL);
   if (task == TASK_REGRESSION) {
@@ -101,20 +108,24 @@ double fm_learn::evaluate(Data& data) {
   }
 }
 
+// 模型的训练过程
 void fm_learn::learn(Data& train, Data& test) {
 }
 
+// debug函数，用于打印中间的结果
 void fm_learn::debug() {
   std::cout << "task=" << task << std::endl;
   std::cout << "min_target=" << min_target << std::endl;
   std::cout << "max_target=" << max_target << std::endl;
 }
 
+// 对分类问题的评价
 double fm_learn::evaluate_classification(Data& data) {
-  int num_correct = 0;
+  int num_correct = 0;  // 准确类别的个数
   double eval_time = getusertime();
   for (data.data->begin(); !data.data->end(); data.data->next()) {
-    double p = predict_case(data);
+    double p = predict_case(data);  // 对样本进行预测
+    // 利用预测值的符号与原始标签值的符号是否相同，若相同，则预测是准确的
     if (((p >= 0) && (data.target(data.data->getRowIndex()) >= 0)) || ((p < 0) && (data.target(data.data->getRowIndex()) < 0))) {
       num_correct++;
     }
@@ -129,17 +140,19 @@ double fm_learn::evaluate_classification(Data& data) {
   return (double) num_correct / (double) data.data->getNumRows();
 }
 
+// 对回归问题的评价
 double fm_learn::evaluate_regression(Data& data) {
-  double rmse_sum_sqr = 0;
-  double mae_sum_abs = 0;
+  double rmse_sum_sqr = 0;  // 误差的平方和
+  double mae_sum_abs = 0; // 误差的绝对值之和
   double eval_time = getusertime();
+  // 取出每一条样本
   for (data.data->begin(); !data.data->end(); data.data->next()) {
-    double p = predict_case(data);
-    p = std::min(max_target, p);
-    p = std::max(min_target, p);
-    double err = p - data.target(data.data->getRowIndex());
-    rmse_sum_sqr += err*err;
-    mae_sum_abs += std::abs((double)err);
+    double p = predict_case(data);  // 计算该样本的预测值
+    p = std::min(max_target, p);  // 防止预测值超出最大限制
+    p = std::max(min_target, p);  // 防止预测值超出最小限制
+    double err = p - data.target(data.data->getRowIndex()); // 得到预测值与真实值之间的误差
+    rmse_sum_sqr += err*err;  // 计算误差平方和
+    mae_sum_abs += std::abs((double)err); // 计算误差绝对值之和
   }
   eval_time = (getusertime() - eval_time);
   // log the values
@@ -149,7 +162,7 @@ double fm_learn::evaluate_regression(Data& data) {
     log->log("time_pred", eval_time);
   }
 
-  return std::sqrt(rmse_sum_sqr/data.data->getNumRows());
+  return std::sqrt(rmse_sum_sqr/data.data->getNumRows()); // 返回均方根误差
 }
 
 #endif /*FM_LEARN_H_*/
