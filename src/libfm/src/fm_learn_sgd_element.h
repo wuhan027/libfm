@@ -65,6 +65,7 @@ void fm_learn_sgd_element::learn(Data& train, Data& test) {
         mult = -train.target(train.data->getRowIndex())*(1.0-1.0/(1.0+exp(-train.target(train.data->getRowIndex())*p)));
       }
       // 利用梯度下降法对参数进行学习
+      std::cout << "SGD: fm_learn_sgd_element::learn===========." << std::endl;
       SGD(train.data->getRow(), mult, sum);
     }
     iteration_time = (getusertime() - iteration_time);
