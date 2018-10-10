@@ -32,7 +32,6 @@
 
 // 利用SGD更新模型的参数
 void fm_SGD(fm_model* fm, const double& learn_rate, sparse_row<DATA_FLOAT> &x, const double multiplier, DVector<double> &sum) {
-  std::cout << "SGD: fm_SGD===========." << std::endl;
   std::cout << 'multiplier=' << multiplier <<' learn_rate=' <<learn_rate << std::endl;
   // 1、常数项的修正
   if (fm->k0) {

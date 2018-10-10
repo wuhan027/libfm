@@ -49,7 +49,6 @@ void fm_learn_sgd_element::init() {
 // 利用SGD训练FM模型
 void fm_learn_sgd_element::learn(Data& train, Data& test) {
   fm_learn_sgd::learn(train, test); // 输出参数信息
-  std::cout << "SGD: DON'T FORGET TO SHUFFLE =============." << std::endl;
   std::cout << "SGD: DON'T FORGET TO SHUFFLE THE ROWS IN TRAINING DATA TO GET THE BEST RESULTS." << std::endl;
   // SGD
   for (int i = 0; i < num_iter; i++) {  // 开始迭代，每一轮的迭代过程
@@ -65,7 +64,6 @@ void fm_learn_sgd_element::learn(Data& train, Data& test) {
         mult = -train.target(train.data->getRowIndex())*(1.0-1.0/(1.0+exp(-train.target(train.data->getRowIndex())*p)));
       }
       // 利用梯度下降法对参数进行学习
-      std::cout << "SGD: fm_learn_sgd_element::learn===========." << std::endl;
       SGD(train.data->getRow(), mult, sum);
     }
     iteration_time = (getusertime() - iteration_time);
