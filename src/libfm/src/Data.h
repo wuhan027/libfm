@@ -56,11 +56,11 @@ class Data {
   LargeSparseMatrix<DATA_FLOAT>* data;
   DVector<DATA_FLOAT> target;
 
-  int num_feature;
-  uint num_cases;
+  int num_feature;  // 特征个数
+  uint num_cases; // 数据采样个数
 
-  DATA_FLOAT min_target;
-  DATA_FLOAT max_target;
+  DATA_FLOAT min_target;  // y的最小值
+  DATA_FLOAT max_target;  // y的最大值
 
   DVector<RelationJoin> relation;
 
