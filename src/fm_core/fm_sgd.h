@@ -41,7 +41,7 @@ void fm_SGD(fm_model* fm, const double& learn_rate, sparse_row<DATA_FLOAT> &x, c
   if (fm->k1) {
     for (uint i = 0; i < x.size; i++) {
       double& w = fm->w(x.data[i].id);
-      double t_w = w;
+//      double t_w = w;
       w -= learn_rate * (multiplier * x.data[i].value + fm->regw * w);
 //      std::cout <<"fm_SGD\tt_w=" <<t_w <<",w=" <<w <<std::endl;
     }
