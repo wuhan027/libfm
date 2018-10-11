@@ -35,7 +35,9 @@ void fm_SGD(fm_model* fm, const double& learn_rate, sparse_row<DATA_FLOAT> &x, c
   // 1、常数项的修正
   if (fm->k0) {
     double& w0 = fm->w0;
+    std::cout <<"learn_rate * (multiplier + fm->reg0 * w0)="<<learn_rate * (multiplier + fm->reg0 * w0) <<",w0=" <<w0 <<std::endl;
     w0 -= learn_rate * (multiplier + fm->reg0 * w0);
+    std::cout <<"w0=="<<w0 <<std::endl;
   }
   // 2、一次项的修正
   if (fm->k1) {
