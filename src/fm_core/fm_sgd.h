@@ -32,7 +32,6 @@
 
 // 利用SGD更新模型的参数
 void fm_SGD(fm_model* fm, const double& learn_rate, sparse_row<DATA_FLOAT> &x, const double multiplier, DVector<double> &sum) {
-  std::cout << "multiplier=" << multiplier <<", learn_rate=" <<learn_rate << std::endl;
   // 1、常数项的修正
   if (fm->k0) {
     double& w0 = fm->w0;
@@ -40,12 +39,11 @@ void fm_SGD(fm_model* fm, const double& learn_rate, sparse_row<DATA_FLOAT> &x, c
   }
   // 2、一次项的修正
   if (fm->k1) {
-    std::cout <<"fm_SGD\tx.size=" <<x.size <<std::endl;
     for (uint i = 0; i < x.size; i++) {
       double& w = fm->w(x.data[i].id);
       double t_w = w;
       w -= learn_rate * (multiplier * x.data[i].value + fm->regw * w);
-      std::cout <<"fm_SGD\tt_w=" <<t_w <<",w=" <<w <<std::endl;
+//      std::cout <<"fm_SGD\tt_w=" <<t_w <<",w=" <<w <<std::endl;
     }
   }
   // 3、交叉项的修正
@@ -53,7 +51,7 @@ void fm_SGD(fm_model* fm, const double& learn_rate, sparse_row<DATA_FLOAT> &x, c
     for (uint i = 0; i < x.size; i++) {
       double& v = fm->v(f,x.data[i].id);
       double grad = sum(f) * x.data[i].value - v * x.data[i].value * x.data[i].value;
-      std::cout <<"fm_SGD\tgrad=" <<grad  <<std::endl;
+//      std::cout <<"fm_SGD\tgrad=" <<grad  <<std::endl;
       v -= learn_rate * (multiplier * grad + fm->regv * v);
     }
   }
