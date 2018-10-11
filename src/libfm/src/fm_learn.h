@@ -147,7 +147,7 @@ double fm_learn::evaluate_regression(Data& data) {
   double eval_time = getusertime();
   // 取出每一条样本
   int i = 0;
-  std::cout<<"w0===" <<fm->w0 <<",w===" <<fm->w <<",v===" <<fm->v <<std::endl;
+  std::cout<<"w0===" <<fm->w0 <<",w===" <<fm->w(1) <<",v===" <<fm->v(1,1) <<std::endl;
   for (data.data->begin(); !data.data->end(); data.data->next()) {
     double p = predict_case(data);  // 计算该样本的预测值
     if (i == 0) {
