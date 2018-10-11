@@ -53,6 +53,7 @@ void fm_SGD(fm_model* fm, const double& learn_rate, sparse_row<DATA_FLOAT> &x, c
       v -= learn_rate * (multiplier * grad + fm->regv * v);
     }
   }
+    std::cout <<"fm_SGD\tw0=" <<w0 <<",w=" <<w <<",v=" <<v <<endl;
 }
 
 void fm_pairSGD(fm_model* fm, const double& learn_rate, sparse_row<DATA_FLOAT> &x_pos, sparse_row<DATA_FLOAT> &x_neg, const double multiplier, DVector<double> &sum_pos, DVector<double> &sum_neg, DVector<bool> &grad_visited, DVector<double> &grad) {
