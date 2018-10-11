@@ -45,7 +45,7 @@ void fm_SGD(fm_model* fm, const double& learn_rate, sparse_row<DATA_FLOAT> &x, c
       double& w = fm->w(x.data[i].id);
       double t_w = w;
       w -= learn_rate * (multiplier * x.data[i].value + fm->regw * w);
-      std::cout <<"fm_SGD\tt_w=" <<t_w <<",w=" <<w <<endl;
+      std::cout <<"fm_SGD\tt_w=" <<t_w <<",w=" <<w <<std::endl;
     }
   }
   // 3、交叉项的修正
@@ -53,7 +53,7 @@ void fm_SGD(fm_model* fm, const double& learn_rate, sparse_row<DATA_FLOAT> &x, c
     for (uint i = 0; i < x.size; i++) {
       double& v = fm->v(f,x.data[i].id);
       double grad = sum(f) * x.data[i].value - v * x.data[i].value * x.data[i].value;
-      std::cout <<"fm_SGD\tgrad=" <<grad  <<endl;
+      std::cout <<"fm_SGD\tgrad=" <<grad  <<std::endl;
       v -= learn_rate * (multiplier * grad + fm->regv * v);
     }
   }
