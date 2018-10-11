@@ -40,7 +40,7 @@ void fm_SGD(fm_model* fm, const double& learn_rate, sparse_row<DATA_FLOAT> &x, c
   }
   // 2、一次项的修正
   if (fm->k1) {
-    std::cout <<"fm_SGD\tx.size=" <<x.size <<endl;
+    std::cout <<"fm_SGD\tx.size=" <<x.size <<std::endl;
     for (uint i = 0; i < x.size; i++) {
       double& w = fm->w(x.data[i].id);
       double t_w = w;
