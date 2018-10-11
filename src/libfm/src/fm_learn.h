@@ -146,8 +146,13 @@ double fm_learn::evaluate_regression(Data& data) {
   double mae_sum_abs = 0; // 误差的绝对值之和
   double eval_time = getusertime();
   // 取出每一条样本
+  int i = 0;
   for (data.data->begin(); !data.data->end(); data.data->next()) {
     double p = predict_case(data);  // 计算该样本的预测值
+    if (i == 0) {
+      std::cout<<"i===" <<i <<",p===" << p <<std::endl;
+    }
+    i++;
     p = std::min(max_target, p);  // 防止预测值超出最大限制
     p = std::max(min_target, p);  // 防止预测值超出最小限制
     double err = p - data.target(data.data->getRowIndex()); // 得到预测值与真实值之间的误差
