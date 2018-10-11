@@ -40,9 +40,12 @@ void fm_SGD(fm_model* fm, const double& learn_rate, sparse_row<DATA_FLOAT> &x, c
   }
   // 2、一次项的修正
   if (fm->k1) {
+    std::cout <<"fm_SGD\tx.size=" <<x.size <<endl;
     for (uint i = 0; i < x.size; i++) {
       double& w = fm->w(x.data[i].id);
+      double t_w = w;
       w -= learn_rate * (multiplier * x.data[i].value + fm->regw * w);
+      std::cout <<"fm_SGD\tt_w=" <<t_w <<",w=" <<w <<endl;
     }
   }
   // 3、交叉项的修正
@@ -50,10 +53,11 @@ void fm_SGD(fm_model* fm, const double& learn_rate, sparse_row<DATA_FLOAT> &x, c
     for (uint i = 0; i < x.size; i++) {
       double& v = fm->v(f,x.data[i].id);
       double grad = sum(f) * x.data[i].value - v * x.data[i].value * x.data[i].value;
+      std::cout <<"fm_SGD\tgrad=" <<grad  <<endl;
       v -= learn_rate * (multiplier * grad + fm->regv * v);
     }
   }
-    std::cout <<"fm_SGD\tw0=" <<w0 <<",w=" <<w <<",v=" <<v <<endl;
+
 }
 
 void fm_pairSGD(fm_model* fm, const double& learn_rate, sparse_row<DATA_FLOAT> &x_pos, sparse_row<DATA_FLOAT> &x_neg, const double multiplier, DVector<double> &sum_pos, DVector<double> &sum_neg, DVector<bool> &grad_visited, DVector<double> &grad) {
