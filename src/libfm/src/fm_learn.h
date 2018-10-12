@@ -155,11 +155,11 @@ double fm_learn::evaluate_regression(Data& data) {
     double err = p - data.target(data.data->getRowIndex()); // 得到预测值与真实值之间的误差
     rmse_sum_sqr += err*err;  // 计算误差平方和
     mae_sum_abs += std::abs((double)err); // 计算误差绝对值之和
-    if (i == 1) {
-      std::cout<<"i===" <<i <<",p===" << p <<",err===" <<err <<",rmse_sum_sqr===" <<rmse_sum_sqr <<",mae_sum_abs===" <<mae_sum_abs <<std::endl;
-    }
+//    if (i == 1) {
+//      std::cout<<"i===" <<i <<",p===" << p <<",err===" <<err <<",rmse_sum_sqr===" <<rmse_sum_sqr <<",mae_sum_abs===" <<mae_sum_abs <<std::endl;
+//    }
   }
-  std::cout<<"w0===" <<fm->w0 <<",w===" <<fm->w(1) <<",v===" <<fm->v(1,1) <<",rmse_sum_sqr===" <<rmse_sum_sqr <<",rows===" <<data.data->getNumRows() <<std::endl;
+//  std::cout<<"w0===" <<fm->w0 <<",w===" <<fm->w(1) <<",v===" <<fm->v(1,1) <<",rmse_sum_sqr===" <<rmse_sum_sqr <<",rows===" <<data.data->getNumRows() <<std::endl;
   eval_time = (getusertime() - eval_time);
   // log the values
   if (log != NULL) {

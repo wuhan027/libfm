@@ -134,10 +134,10 @@ double fm_model::predict(sparse_row<FM_FLOAT>& x, DVector<double> &sum, DVector<
     result += 0.5 * (sum(f)*sum(f) - sum_sqr(f));
   }
     double result2 = result;
-    if (x.size >= 2 && x.data[0].id == 1000000 && x.data[1].id == 1)
-    {
-        std::cout<< "data[0]==value=1000000:" <<x.data[0].value <<",data[1]==value=1:" <<x.data[1].value <<",result0=" <<result0 <<",result1=" <<result1 <<",result2=" <<result2 <<std::endl;
-    }
+//    if (x.size >= 2 && x.data[0].id == 1000000 && x.data[1].id == 1)
+//    {
+//        std::cout<< "data[0]==value=1000000:" <<x.data[0].value <<",data[1]==value=1:" <<x.data[1].value <<",result0=" <<result0 <<",result1=" <<result1 <<",result2=" <<result2 <<std::endl;
+//    }
   return result;
 }
 
