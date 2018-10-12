@@ -114,7 +114,7 @@ double fm_model::predict(sparse_row<FM_FLOAT>& x, DVector<double> &sum, DVector<
   }
   // 第二部分 一次项
   if (k1) {
-      std::cout <<"data[0]===" <<x.data[0].value <<std::endl;
+      std::cout<< "data[0]==id=" <<x.data[0].id <<",data[0]==value=" <<x.data[0].value <<std::endl;
     for (uint i = 0; i < x.size; i++) {
       assert(x.data[i].id < num_attribute);
       result += w(x.data[i].id) * x.data[i].value;
