@@ -112,7 +112,7 @@ double fm_model::predict(sparse_row<FM_FLOAT>& x, DVector<double> &sum, DVector<
   if (k0) {
     result += w0;
   }
-    double result0 = result;
+//    double result0 = result;
   // 第二部分 一次项
   if (k1) {
     for (uint i = 0; i < x.size; i++) {
@@ -120,7 +120,7 @@ double fm_model::predict(sparse_row<FM_FLOAT>& x, DVector<double> &sum, DVector<
       result += w(x.data[i].id) * x.data[i].value;
     }
   }
-    double result1 = result;
+//    double result1 = result;
   // 第三部分
   // 交叉项，对应着化简后的公式，有两重循环
   for (int f = 0; f < num_factor; f++) {
@@ -133,7 +133,7 @@ double fm_model::predict(sparse_row<FM_FLOAT>& x, DVector<double> &sum, DVector<
     }
     result += 0.5 * (sum(f)*sum(f) - sum_sqr(f));
   }
-    double result2 = result;
+//    double result2 = result;
 //    if (x.size >= 2 && x.data[0].id == 1000000 && x.data[1].id == 1)
 //    {
 //        std::cout<< "data[0]==value=1000000:" <<x.data[0].value <<",data[1]==value=1:" <<x.data[1].value <<",result0=" <<result0 <<",result1=" <<result1 <<",result2=" <<result2 <<std::endl;
